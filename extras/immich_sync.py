@@ -229,6 +229,16 @@ def main():
             chunk = missing[i:i + BATCH]
             r = request(amz, 'PATCH', f"{DRIVE}/nodes/{st['amazon_id']}/children",
                         json={'op': 'add', 'value': chunk} | V2)
+            if r.status_code == 400:  # find the offending node(s) one by one
+                log(f'  400 adding batch to {name}: {r.text[:300]}')
+                for nid in chunk:
+                    r1 = request(amz, 'PATCH', f"{DRIVE}/nodes/{st['amazon_id']}/children",
+                                 json={'op': 'add', 'value': [nid]} | V2)
+                    if r1.is_success:
+                        st['added'].append(nid)
+                    else:
+                        log(f'    skip {nid}: {r1.status_code} {r1.text[:200]}')
+                continue
             r.raise_for_status()
             st['added'] += chunk
         save()
