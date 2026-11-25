@@ -131,7 +131,7 @@ class AmazonPhotos:
             'http2': kwargs.pop('http2', True),
             'follow_redirects': kwargs.pop('follow_redirects', True),
             'timeout': kwargs.pop('timeout', 30.0),
-            'verify': kwargs.pop('verify', False),
+            'verify': kwargs.pop('verify', True),
         }
         headers, cookies = (
             kwargs.pop('headers', {}) | dict(self.client.headers),
@@ -943,7 +943,7 @@ class AmazonPhotos:
             limits=self.limits,
             headers=self.client.headers,
             cookies=self.client.cookies,
-            verify=False,
+            verify=True,
         )
 
         async def helper(node):
@@ -1059,7 +1059,7 @@ class AmazonPhotos:
             limits=self.limits,
             headers=self.client.headers,
             cookies=self.client.cookies,
-            verify=False,
+            verify=True,
         )
 
         def get_id(data: dict) -> str:
