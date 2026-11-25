@@ -987,6 +987,9 @@ class AmazonPhotos:
         @param root: optional root node to search from
         @return: node
         """
+        if not self.tree:  # lazy load when created with init_folders=False
+            self.folders = self.get_folders()
+            self.tree = self.build_tree()
         if target == '':
             return self.tree
         root = root or self.tree
