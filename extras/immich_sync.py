@@ -154,7 +154,10 @@ def upload_one(a, folder_id, amz_md5):
         if r.status_code in (200, 201):
             return r.json()['id'], 'uploaded'
         if r.status_code == 409:
-            nid = (r.json().get('info') or {}).get('nodeId')
+            info = r.json().get('info') or {}
+            if r.json().get('code') == 'MD5_DUPLICATE' and info.get('nodeIds'):
+                return info['nodeIds'][0], 'existing'
+            nid = info.get('nodeId')
             if nid:
                 node = request(amz, 'GET', f'{DRIVE}/nodes/{nid}', params=V2).json()
                 if (node.get('contentProperties') or {}).get('md5') == m:
