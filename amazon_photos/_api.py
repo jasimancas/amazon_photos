@@ -1131,6 +1131,9 @@ class AmazonPhotos:
             res = await asyncio.gather(*workers, return_exceptions=True)
             return [y for x in filter(lambda x: isinstance(x, list), res) for y in x]
 
+        if not self.tree:  # lazy load when created with init_folders=False
+            self.folders = self.get_folders()
+            self.tree = self.build_tree()
         res = asyncio.run(main(Path(path)))
         return folder_map, res
 
