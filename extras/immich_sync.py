@@ -30,7 +30,7 @@ WORKERS = int(os.environ.get('WORKERS', 4))
 DRY_RUN = os.environ.get('DRY_RUN') == '1'
 TYPES = os.environ.get('TYPES', 'IMAGE,VIDEO').split(',')  # e.g. TYPES=IMAGE to skip videos
 FOLDER_NAME = 'Immich'
-BATCH = 50
+BATCH = 25  # Amazon rejects larger children PATCH batches
 V2 = {'resourceVersion': 'V2', 'ContentType': 'JSON'}
 
 lock = threading.Lock()
