@@ -78,12 +78,12 @@ def request(client, method, url, retries=8, **kw):
 im = httpx.Client(base_url=os.environ['IMMICH_URL'], headers={'x-api-key': os.environ['IMMICH_API_KEY']}, timeout=120)
 
 
-def immich_assets():
+def immich_assets(**filters):
     out = []
     for vis in ('timeline', 'archive'):
         page = 1
         while page:
-            r = im.post('/api/search/metadata', json={'page': page, 'size': 1000, 'visibility': vis, 'withDeleted': False})
+            r = im.post('/api/search/metadata', json={'page': page, 'size': 1000, 'visibility': vis, 'withDeleted': False} | filters)
             r.raise_for_status()
             d = r.json()['assets']
             out += d['items']
@@ -208,14 +208,14 @@ def main():
     log('Albums…')
     existing = {n['name']: n['id'] for n in amazon_nodes('kind:VISUAL_COLLECTION')}
     for al in im.get('/api/albums').json():
-        det = im.get(f"/api/albums/{al['id']}").json()
+        album_assets = immich_assets(albumIds=[al['id']])
         name = al['albumName']
-        node_ids = [state['assets'][x['id']] for x in det.get('assets', []) if x['id'] in state['assets']]
+        node_ids = [state['assets'][x['id']] for x in album_assets if x['id'] in state['assets']]
         st = state['albums'].setdefault(al['id'], {'amazon_id': None, 'added': []})
         st['amazon_id'] = st['amazon_id'] or existing.get(name)
         missing = [n for n in dict.fromkeys(node_ids) if n not in set(st['added'])]
         if DRY_RUN:
-            log(f'  {name}: {len(det.get("assets", []))} assets, would add {len(missing)}')
+            log(f'  {name}: {len(album_assets)} assets, would add {len(missing)}')
             continue
         if not st['amazon_id']:
             r = request(amz, 'POST', f'{DRIVE}/nodes', params=V2, json={'kind': 'VISUAL_COLLECTION', 'name': name} | V2)
@@ -228,7 +228,7 @@ def main():
             r.raise_for_status()
             st['added'] += chunk
         save()
-        log(f'  {name}: {len(st["added"])}/{len(det.get("assets", []))} in Amazon album')
+        log(f'  {name}: {len(st["added"])}/{len(album_assets)} in Amazon album')
 
     log(f'DONE. assets={stats} errors={len(errors)}')
     if errors:
