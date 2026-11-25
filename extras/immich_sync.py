@@ -8,7 +8,7 @@ Sync an Immich library to Amazon Photos (one-way, re-runnable).
 
 Env: AP_SESSION_ID, AP_UBID, AP_AT (amazon cookies), AP_TLD (default "es"),
      IMMICH_URL, IMMICH_API_KEY, STATE_DIR (default /state), WORKERS (default 4),
-     DRY_RUN=1 to only report what would happen.
+     DRY_RUN=1 to only report what would happen, TYPES=IMAGE to skip videos.
 Immich's upload location must be mounted at /data (same paths Immich reports).
 """
 import hashlib
@@ -28,6 +28,7 @@ STATE_DIR = Path(os.environ.get('STATE_DIR', '/state'))
 STATE_FILE = STATE_DIR / 'state.json'
 WORKERS = int(os.environ.get('WORKERS', 4))
 DRY_RUN = os.environ.get('DRY_RUN') == '1'
+TYPES = os.environ.get('TYPES', 'IMAGE,VIDEO').split(',')  # e.g. TYPES=IMAGE to skip videos
 FOLDER_NAME = 'Immich'
 BATCH = 50
 V2 = {'resourceVersion': 'V2', 'ContentType': 'JSON'}
@@ -166,7 +167,7 @@ def upload_one(a, folder_id, amz_md5):
 
 def main():
     log('Listing Immich assets…')
-    assets = immich_assets()
+    assets = [a for a in immich_assets() if a['type'] in TYPES]
     log(f'Immich: {len(assets)} assets, {len(state["assets"])} already synced')
 
     log('Listing Amazon Photos media (for MD5 dedup)…')
@@ -210,7 +211,7 @@ def main():
     for al in im.get('/api/albums').json():
         album_assets = immich_assets(albumIds=[al['id']])
         name = al['albumName']
-        node_ids = [state['assets'][x['id']] for x in album_assets if x['id'] in state['assets']]
+        node_ids = [state['assets'][x['id']] for x in album_assets if x['id'] in state['assets'] and x['type'] in TYPES]
         st = state['albums'].setdefault(al['id'], {'amazon_id': None, 'added': []})
         st['amazon_id'] = st['amazon_id'] or existing.get(name)
         missing = [n for n in dict.fromkeys(node_ids) if n not in set(st['added'])]
